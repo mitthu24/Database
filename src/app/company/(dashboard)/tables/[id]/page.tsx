@@ -12,8 +12,10 @@ export default async function TableDetailPage({ params }: { params: Promise<{ id
   const table = await prisma.tableDef.findUnique({ where: { id } });
   if (!table || table.companyId !== session.companyId) notFound();
 
-  const [rows, logs] = await Promise.all([
-    prisma.tableRow.findMany({ where: { tableId: table.id }, orderBy: { createdAt: 'desc' }, take: 200 }),
+  const PAGE_SIZE = 50;
+  const [rows, totalRows, logs] = await Promise.all([
+    prisma.tableRow.findMany({ where: { tableId: table.id }, orderBy: { createdAt: 'desc' }, take: PAGE_SIZE }),
+    prisma.tableRow.count({ where: { tableId: table.id } }),
     prisma.ingestionLog.findMany({ where: { tableId: table.id }, orderBy: { createdAt: 'desc' }, take: 30 }),
   ]);
 
@@ -40,12 +42,15 @@ export default async function TableDetailPage({ params }: { params: Promise<{ id
 
       <div className="card">
         <DataTable
+          tableId={table.id}
           columns={columns}
-          rows={rows.map((r) => ({
+          initialRows={rows.map((r) => ({
             id: r.id,
             createdAt: r.createdAt.toISOString(),
             data: r.data as Record<string, unknown>,
           }))}
+          total={totalRows}
+          pageSize={PAGE_SIZE}
         />
       </div>
 

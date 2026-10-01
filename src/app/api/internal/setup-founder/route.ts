@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 // One-time bootstrap endpoint: creates the first Founder account on a fresh
@@ -20,6 +21,14 @@ export async function POST(req: NextRequest) {
   const expected = process.env.SETUP_SECRET;
   if (!expected) {
     return NextResponse.json({ error: 'SETUP_SECRET is not configured' }, { status: 500 });
+  }
+
+  const limit = rateLimit(`setup-founder:${clientIp(req)}`, 5, 15 * 60 * 1000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Too many attempts. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } },
+    );
   }
 
   const parsed = schema.safeParse(await req.json().catch(() => null));

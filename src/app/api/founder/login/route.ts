@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createFounderSession, verifyPassword } from '@/lib/auth';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 const schema = z.object({ email: z.string().email(), password: z.string().min(1) });
@@ -11,6 +12,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
   const { email, password } = parsed.data;
+
+  const limit = rateLimit(`founder-login:${clientIp(req)}:${email}`, 5, 15 * 60 * 1000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Too many attempts. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } },
+    );
+  }
 
   const founder = await prisma.founder.findUnique({ where: { email } });
   if (!founder || !(await verifyPassword(password, founder.passwordHash))) {

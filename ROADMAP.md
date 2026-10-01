@@ -60,14 +60,19 @@ limits/streaming CSV import, column type validation beyond basic casting.
 - [x] Founder can suspend/reactivate a company (blocks login immediately, even
       for an already-active session, via a per-request status check)
 - [x] Client-side search box on the table data viewer (filters loaded rows)
+- [x] Server-side pagination on the table data viewer (`GET /api/company/tables/[id]/rows?page=&pageSize=`,
+  50 rows/page, Previous/Next); search still filters only the loaded page —
+  real server-side search is still open
+- [x] Rate limiting on `/api/founder/login`, `/api/company/login`, and
+  `/api/internal/setup-founder` (5 attempts / 15 min per IP+email, in-memory —
+  fine as a brute-force deterrent, not a distributed limiter; see
+  `src/lib/rate-limit.ts` for the caveat)
 - [ ] Email delivery for invites + password reset (Resend/Postgres-backed tokens)
 - [ ] Per-table granular permissions (e.g. restrict a Data Entry user to specific
   tables, not all tables in the company)
-- [ ] Server-side pagination and column sorting in table viewers (current MVP
-  loads the latest 200/500 rows and searches only within that page — fine for
-  small/medium datasets, not for 50k+ rows)
+- [ ] Server-side search (currently only filters the already-loaded page)
 - [ ] Full audit trail UI (filter by user/action/date) built on `IngestionLog`
-- [ ] Rate limiting + basic abuse protection on auth routes
+- [ ] Shared rate-limit store (Upstash Redis or similar) once running multiple instances
 
 ## Phase 3 — Marketing site & self-serve
 - Build `maindomain.com` marketing/landing site (separate lightweight Next.js

@@ -10,6 +10,33 @@ async function loadOwnedTable(companyId: string, id: string) {
   return table;
 }
 
+const MAX_PAGE_SIZE = 200;
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { session, error } = await requireCompanySession();
+  if (error) return error;
+
+  const { id } = await params;
+  const table = await loadOwnedTable(session.companyId, id);
+  if (!table) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const url = new URL(req.url);
+  const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Number(url.searchParams.get('pageSize')) || 50));
+
+  const [rows, total] = await Promise.all([
+    prisma.tableRow.findMany({
+      where: { tableId: table.id },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.tableRow.count({ where: { tableId: table.id } }),
+  ]);
+
+  return NextResponse.json({ rows, total, page, pageSize });
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const form = await req.formData().catch(() => null);
   const mode = (form?.get('mode') as string) === 'replace' ? 'replace' : 'append';

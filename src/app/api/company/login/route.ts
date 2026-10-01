@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createCompanySession, verifyPassword } from '@/lib/auth';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 const schema = z.object({ email: z.string().email(), password: z.string().min(1) });
@@ -9,6 +10,14 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   const { email, password } = parsed.data;
+
+  const limit = rateLimit(`company-login:${clientIp(req)}:${email}`, 5, 15 * 60 * 1000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Too many attempts. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } },
+    );
+  }
 
   const user = await prisma.companyUser.findUnique({
     where: { email },
