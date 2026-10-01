@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireCompanySession } from '@/lib/require-session';
+import { canAccessTable } from '@/lib/table-access';
 import { rowsToCsv, type ColumnDef } from '@/lib/csv';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +12,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const table = await prisma.tableDef.findUnique({ where: { id } });
   if (!table || table.companyId !== session.companyId) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  if (!(await canAccessTable(session, table.id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const rows = await prisma.tableRow.findMany({

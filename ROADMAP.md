@@ -66,9 +66,14 @@ limits/streaming CSV import, column type validation beyond basic casting.
   `/api/internal/setup-founder` (5 attempts / 15 min per IP+email, in-memory —
   fine as a brute-force deterrent, not a distributed limiter; see
   `src/lib/rate-limit.ts` for the caveat)
+- [x] Per-table granular permissions: a `TableAccess` grant list per table, opt-in
+  (a table with zero grants stays open to the whole company, unchanged default).
+  Once a COMPANY_ADMIN/DATA_MANAGER grants at least one DATA_ENTRY/DATA_ANALYST
+  user access to a table, that table is hidden from every other DATA_ENTRY/
+  DATA_ANALYST user — in the tables list, the table detail page (404s),
+  and every rows/export API route. Managed from a new "Access" panel on the
+  table detail page (`GET`/`PUT /api/company/tables/[id]/access`).
 - [ ] Email delivery for invites + password reset (Resend/Postgres-backed tokens)
-- [ ] Per-table granular permissions (e.g. restrict a Data Entry user to specific
-  tables, not all tables in the company)
 - [ ] Full audit trail UI (filter by user/action/date) built on `IngestionLog`
 - [ ] Shared rate-limit store (Upstash Redis or similar) once running multiple instances
 

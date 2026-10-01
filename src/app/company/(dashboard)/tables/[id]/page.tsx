@@ -1,8 +1,10 @@
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getCompanySession, can } from '@/lib/auth';
+import { canAccessTable } from '@/lib/table-access';
 import TableActions from './table-actions';
 import DataTable from './data-table';
+import TableAccessPanel from './table-access-panel';
 
 export default async function TableDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,6 +13,7 @@ export default async function TableDetailPage({ params }: { params: Promise<{ id
 
   const table = await prisma.tableDef.findUnique({ where: { id } });
   if (!table || table.companyId !== session.companyId) notFound();
+  if (!(await canAccessTable(session, table.id))) notFound();
 
   const PAGE_SIZE = 50;
   const [rows, totalRows, logs] = await Promise.all([
@@ -39,6 +42,18 @@ export default async function TableDetailPage({ params }: { params: Promise<{ id
           canExport={can(session.role, 'rows:export')}
         />
       </div>
+
+      {can(session.role, 'tables:manage_access') && (
+        <div className="card">
+          <h2>Access</h2>
+          <p className="muted">
+            By default every active team member can see this table. Grant access to specific Data
+            Entry / Data Analyst users to restrict it to just them (Company Admins and Data
+            Managers always have access).
+          </p>
+          <TableAccessPanel tableId={table.id} />
+        </div>
+      )}
 
       <div className="card">
         <DataTable

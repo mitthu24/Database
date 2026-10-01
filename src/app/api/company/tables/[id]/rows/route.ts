@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireCompanySession } from '@/lib/require-session';
+import { canAccessTable } from '@/lib/table-access';
 import { parseCsv, csvRowsToTableRows, type ColumnDef } from '@/lib/csv';
 
 async function loadOwnedTable(companyId: string, id: string) {
@@ -19,6 +20,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const table = await loadOwnedTable(session.companyId, id);
   if (!table) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!(await canAccessTable(session, table.id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const url = new URL(req.url);
   const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
@@ -70,6 +74,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const table = await loadOwnedTable(session.companyId, id);
   if (!table) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!(await canAccessTable(session, table.id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const file = form?.get('file');
   if (!(file instanceof File)) {
@@ -117,6 +124,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const table = await loadOwnedTable(session.companyId, id);
   if (!table) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!(await canAccessTable(session, table.id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     const { count } = await tx.tableRow.deleteMany({ where: { tableId: table.id } });

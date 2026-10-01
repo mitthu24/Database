@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getCompanySession, can } from '@/lib/auth';
+import { visibleTablesWhere } from '@/lib/table-access';
 import CreateTableForm from './create-table-form';
 
 export default async function TablesPage() {
@@ -8,7 +9,7 @@ export default async function TablesPage() {
   if (!session) redirect('/company/login');
 
   const tables = await prisma.tableDef.findMany({
-    where: { companyId: session.companyId },
+    where: visibleTablesWhere(session),
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { rows: true } } },
   });

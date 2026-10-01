@@ -98,6 +98,7 @@ export type Permission =
   | 'users:manage'
   | 'tables:create'
   | 'tables:delete'
+  | 'tables:manage_access'
   | 'rows:append'
   | 'rows:replace'
   | 'rows:delete_all'
@@ -108,6 +109,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'users:manage',
     'tables:create',
     'tables:delete',
+    'tables:manage_access',
     'rows:append',
     'rows:replace',
     'rows:delete_all',
@@ -116,6 +118,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   DATA_MANAGER: [
     'tables:create',
     'tables:delete',
+    'tables:manage_access',
     'rows:append',
     'rows:replace',
     'rows:delete_all',

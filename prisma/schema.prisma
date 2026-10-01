@@ -43,9 +43,9 @@ model Company {
 
 // A user inside a company (data entry / analyst / manager / company admin).
 model CompanyUser {
-  id           String   @id @default(cuid())
-  companyId    String
-  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  companyId          String
+  company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   email              String   @unique
   passwordHash       String
   name               String
@@ -54,7 +54,8 @@ model CompanyUser {
   mustChangePassword Boolean  @default(true)
   createdAt          DateTime @default(now())
 
-  createdRows TableRow[]
+  createdRows   TableRow[]
+  tableAccesses TableAccess[]
 
   @@index([companyId])
 }
@@ -74,9 +75,26 @@ model TableDef {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rows TableRow[]
+  rows     TableRow[]
+  accesses TableAccess[]
 
   @@unique([companyId, slug])
+}
+
+// Opt-in per-table restriction for non-manager roles (DATA_ENTRY/DATA_ANALYST).
+// A table with zero rows here is open to every active user in the company
+// (the Phase 1 default, unchanged); once at least one row exists for a table,
+// only COMPANY_ADMIN/DATA_MANAGER plus the listed users can see or act on it.
+model TableAccess {
+  id        String      @id @default(cuid())
+  tableId   String
+  table     TableDef    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  userId    String
+  user      CompanyUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([tableId, userId])
+  @@index([userId])
 }
 
 model TableRow {
