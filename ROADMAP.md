@@ -78,12 +78,16 @@ limits/streaming CSV import, column type validation beyond basic casting.
 - [ ] Shared rate-limit store (Upstash Redis or similar) once running multiple instances
 
 ## Phase 3 — Marketing site & self-serve
-- Build `maindomain.com` marketing/landing site (separate lightweight Next.js
-  route group or its own project)
-- Self-serve signup flow (replace founder-manual company creation with a
-  request/approval flow, still founder-gated)
-- Billing/subscription (Stripe) tied to Company
-- Branding/theming per company (logo, colors) on the company panel
+- [x] Real marketing/landing page (hero, feature grid, request-access form) on
+  `/marketing`, replacing the Phase 1 placeholder
+- [x] Self-serve signup flow: public `POST /api/public/request-access`
+  (rate-limited) creates a `CompanyRequest`; founder reviews pending requests
+  on a new **Requests** page and Approve/Reject — approving calls the same
+  `createCompanyWithAdmin` helper manual creation uses, so it's one code path
+  for both — still founder-gated, no auto-provisioning
+- [ ] Billing/subscription (Stripe) tied to Company — needs Stripe API keys
+  from you before this can start
+- [ ] Branding/theming per company (logo, colors) on the company panel
 
 ## Phase 4 — Scale & advanced data features
 - Optional real per-tenant Postgres schemas/tables for companies with heavy

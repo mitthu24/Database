@@ -14,6 +14,7 @@ export default function FounderNav({ email }: { email: string }) {
   return (
     <nav>
       <a href="/founder">Companies</a>
+      <a href="/founder/requests">Requests</a>
       <div className="muted" style={{ marginTop: 20, fontSize: 12 }}>
         {email}
       </div>

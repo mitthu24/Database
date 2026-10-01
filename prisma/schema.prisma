@@ -19,6 +19,26 @@ enum CompanyStatus {
   SUSPENDED
 }
 
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A self-serve "request access" submission from the public marketing site.
+// Founder reviews and approves/rejects; approving creates the Company +
+// its first COMPANY_ADMIN the same way manual creation does.
+model CompanyRequest {
+  id          String        @id @default(cuid())
+  companyName String
+  contactName String
+  contactEmail String
+  message     String?
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  decidedAt   DateTime?
+}
+
 // The founder/super-admin account(s). Separate from company users entirely.
 model Founder {
   id           String   @id @default(cuid())

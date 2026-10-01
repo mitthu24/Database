@@ -7,7 +7,7 @@ on the request's subdomain:
 | --------------------------- | -------------------------------------------------------- |
 | `admin.<yourdomain>`        | Founder (super admin) — create & manage companies        |
 | `app.<yourdomain>`          | Company panel — manage team + tables (data ingestion)    |
-| `<yourdomain>` (apex)       | Marketing placeholder (built out in Phase 3)              |
+| `<yourdomain>` (apex)       | Marketing site + self-serve "request access" form         |
 
 See `ROADMAP.md` for the full phased plan.
 

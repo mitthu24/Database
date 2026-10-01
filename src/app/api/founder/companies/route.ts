@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getFounderSession, hashPassword } from '@/lib/auth';
-import { slugify, generatePassword } from '@/lib/util';
+import { getFounderSession } from '@/lib/auth';
+import { createCompanyWithAdmin, EmailInUseError } from '@/lib/create-company';
 import { z } from 'zod';
 
 export async function GET() {
@@ -29,41 +29,14 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
-  const { companyName, adminEmail, adminName } = parsed.data;
 
-  const baseSlug = slugify(companyName) || 'company';
-  let slug = baseSlug;
-  let suffix = 1;
-  while (await prisma.company.findUnique({ where: { slug } })) {
-    slug = `${baseSlug}-${++suffix}`;
+  try {
+    const result = await createCompanyWithAdmin(parsed.data);
+    return NextResponse.json(result);
+  } catch (err) {
+    if (err instanceof EmailInUseError) {
+      return NextResponse.json({ error: err.message }, { status: 409 });
+    }
+    throw err;
   }
-
-  const existingUser = await prisma.companyUser.findUnique({ where: { email: adminEmail } });
-  if (existingUser) {
-    return NextResponse.json({ error: 'That admin email is already in use' }, { status: 409 });
-  }
-
-  const tempPassword = generatePassword();
-  const passwordHash = await hashPassword(tempPassword);
-
-  const company = await prisma.company.create({
-    data: {
-      name: companyName,
-      slug,
-      users: {
-        create: {
-          email: adminEmail,
-          name: adminName,
-          role: 'COMPANY_ADMIN',
-          passwordHash,
-        },
-      },
-    },
-  });
-
-  return NextResponse.json({
-    company,
-    adminEmail,
-    tempPassword,
-  });
 }
