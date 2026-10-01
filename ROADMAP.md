@@ -59,10 +59,9 @@ limits/streaming CSV import, column type validation beyond basic casting.
       temp password (`mustChangePassword` flag, `/company/change-password`)
 - [x] Founder can suspend/reactivate a company (blocks login immediately, even
       for an already-active session, via a per-request status check)
-- [x] Client-side search box on the table data viewer (filters loaded rows)
-- [x] Server-side pagination on the table data viewer (`GET /api/company/tables/[id]/rows?page=&pageSize=`,
-  50 rows/page, Previous/Next); search still filters only the loaded page —
-  real server-side search is still open
+- [x] Server-side pagination + search on the table data viewer
+  (`GET /api/company/tables/[id]/rows?page=&pageSize=&search=`, 50 rows/page,
+  debounced search across the whole row via `data::text ILIKE`, Previous/Next)
 - [x] Rate limiting on `/api/founder/login`, `/api/company/login`, and
   `/api/internal/setup-founder` (5 attempts / 15 min per IP+email, in-memory —
   fine as a brute-force deterrent, not a distributed limiter; see
@@ -70,7 +69,6 @@ limits/streaming CSV import, column type validation beyond basic casting.
 - [ ] Email delivery for invites + password reset (Resend/Postgres-backed tokens)
 - [ ] Per-table granular permissions (e.g. restrict a Data Entry user to specific
   tables, not all tables in the company)
-- [ ] Server-side search (currently only filters the already-loaded page)
 - [ ] Full audit trail UI (filter by user/action/date) built on `IngestionLog`
 - [ ] Shared rate-limit store (Upstash Redis or similar) once running multiple instances
 

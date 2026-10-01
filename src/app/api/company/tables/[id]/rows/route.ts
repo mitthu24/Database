@@ -23,16 +23,38 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const url = new URL(req.url);
   const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Number(url.searchParams.get('pageSize')) || 50));
+  const search = url.searchParams.get('search')?.trim() ?? '';
 
-  const [rows, total] = await Promise.all([
-    prisma.tableRow.findMany({
-      where: { tableId: table.id },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.tableRow.count({ where: { tableId: table.id } }),
-  ]);
+  let rows;
+  let total;
+  if (search) {
+    // JSONB rows have an open column schema, so a simple text match against
+    // the whole row (cast to text) covers every column without needing a
+    // per-column WHERE clause built from user-controlled column names.
+    const likeParam = `%${search}%`;
+    [rows, total] = await Promise.all([
+      prisma.$queryRaw<Array<{ id: string; tableId: string; data: unknown; createdAt: Date; createdById: string | null }>>`
+        SELECT * FROM "TableRow"
+        WHERE "tableId" = ${table.id} AND data::text ILIKE ${likeParam}
+        ORDER BY "createdAt" DESC
+        OFFSET ${(page - 1) * pageSize} LIMIT ${pageSize}
+      `,
+      prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*) as count FROM "TableRow"
+        WHERE "tableId" = ${table.id} AND data::text ILIKE ${likeParam}
+      `.then((r) => Number(r[0]?.count ?? 0)),
+    ]);
+  } else {
+    [rows, total] = await Promise.all([
+      prisma.tableRow.findMany({
+        where: { tableId: table.id },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.tableRow.count({ where: { tableId: table.id } }),
+    ]);
+  }
 
   return NextResponse.json({ rows, total, page, pageSize });
 }
