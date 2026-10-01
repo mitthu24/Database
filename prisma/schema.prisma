@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  COMPANY_ADMIN
+  DATA_MANAGER
+  DATA_ANALYST
+  DATA_ENTRY
+}
+
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+// The founder/super-admin account(s). Separate from company users entirely.
+model Founder {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+// A tenant. Founder creates these; gets its own isolated set of users + tables.
+model Company {
+  id        String        @id @default(cuid())
+  name      String
+  slug      String        @unique
+  status    CompanyStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  users  CompanyUser[]
+  tables TableDef[]
+}
+
+// A user inside a company (data entry / analyst / manager / company admin).
+model CompanyUser {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  createdRows TableRow[]
+
+  @@index([companyId])
+}
+
+// Logical table a company defines through the "Data Ingestion" style UI.
+// Columns are stored as a JSON schema; row data lives in TableRow as JSONB.
+// This avoids running raw DDL per-tenant while still giving each company
+// its own named "tables" with typed columns, exactly like the dataset list
+// in the reference screenshots (sp_users, sp_visits, ...).
+model TableDef {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  columns   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rows TableRow[]
+
+  @@unique([companyId, slug])
+}
+
+model TableRow {
+  id        String      @id @default(cuid())
+  tableId   String
+  table     TableDef    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  data      Json
+  createdAt DateTime    @default(now())
+  createdById String?
+  createdBy CompanyUser? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([tableId])
+}
+
+// Audit trail for ingestion actions (replace/append/delete) - phase 1 basic version.
+model IngestionLog {
+  id        String   @id @default(cuid())
+  tableId   String
+  action    String // CREATE_TABLE | APPEND | REPLACE | DELETE_ALL_ROWS | DELETE_TABLE | EXPORT
+  rowCount  Int?
+  actorId   String?
+  actorName String?
+  createdAt DateTime @default(now())
+}
