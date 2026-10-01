@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Routes by subdomain so one Next.js app/deploy serves all three domains:
-//   admin.<root>  -> /founder/*   (founder / super-admin panel)
-//   app.<root>    -> /company/*   (company admin + staff panel)
-//   <root> (apex) -> /marketing/* (placeholder landing page, built in Phase 3)
+// Routes by subdomain so this same codebase can serve all three panels,
+// either from one deployment (admin./app. subdomains on one Vercel project)
+// or from three separate Vercel projects that share this repo/branch — each
+// pinned to a single panel via the APP_PANEL env var (set to "founder" or
+// "company" in that project's Environment Variables; leave unset for the
+// marketing project, which defaults to marketing). Host-based detection
+// always wins over APP_PANEL, so attaching real admin./app. domains later
+// works without any further code change.
 //
 // A path that already starts with /founder or /company is routed there
-// regardless of host: this makes internal links (e.g. FounderNav -> "/founder")
-// and anyone navigating to /founder/login or /company/login directly work even
-// without real subdomains set up yet (e.g. testing on the raw *.vercel.app
-// URL before a custom domain is attached). Only a path with neither prefix
-// (including bare "/") falls back to the host-based rule, which is marketing
-// unless the host is an admin./app. subdomain.
+// regardless of host or APP_PANEL: this makes internal links (e.g.
+// FounderNav -> "/founder") and anyone navigating to /founder/login or
+// /company/login directly work on any of the three deployments.
 export function middleware(req: NextRequest) {
   const url = req.nextUrl;
   const host = req.headers.get('host') || '';
@@ -31,6 +32,8 @@ export function middleware(req: NextRequest) {
     target = 'founder';
   } else if (hostname.startsWith('app.')) {
     target = 'company';
+  } else if (process.env.APP_PANEL === 'founder' || process.env.APP_PANEL === 'company') {
+    target = process.env.APP_PANEL;
   }
 
   if (url.pathname.startsWith('/marketing')) {

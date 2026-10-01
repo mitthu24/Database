@@ -78,8 +78,30 @@ In Vercel → Project → Settings → Domains, add:
 
 Point each as a CNAME (or the A/ALIAS record Vercel gives you for the apex) at
 Vercel per their instructions. Because `middleware.ts` branches on the request
-`Host` header, all three domains are served by this same deployment — you do
-**not** need three separate Vercel projects.
+`Host` header, all three domains can be served by this one deployment if you'd
+rather not run three projects.
+
+### 3b. Alternative: three separate Vercel projects
+If you want each panel independently deployable (its own build/rollback
+history, no risk of one panel's traffic affecting another) rather than one
+project serving all three hosts, create three Vercel projects from this same
+repo/branch instead of one:
+
+1. Import this repo into Vercel **three times** (Add New Project, same repo,
+   same branch each time) — e.g. `yourapp-marketing`, `yourapp-admin`,
+   `yourapp-app`.
+2. Give all three the same `DATABASE_URL`, `AUTH_SECRET`, and `SETUP_SECRET`
+   (they're one platform sharing one database — only the panel each project
+   *serves* differs, not the data).
+3. Set `APP_PANEL` in each project's Environment Variables:
+   - marketing project: leave `APP_PANEL` unset
+   - admin project: `APP_PANEL=founder`
+   - app project: `APP_PANEL=company`
+4. Each project gets its own `*.vercel.app` URL immediately — no domain
+   needed to test. When you do attach `admin.maindomain.com` /
+   `app.maindomain.com` / `maindomain.com` (one per project, not all three on
+   one), host-based detection in `middleware.ts` takes over automatically and
+   `APP_PANEL` becomes a no-op fallback, so nothing needs to change in code.
 
 ### 4. First login
 - Go to `https://admin.maindomain.com/login` and sign in with the
