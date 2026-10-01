@@ -77,6 +77,9 @@ Vercel per their instructions. Because `middleware.ts` branches on the request
 - The company admin logs in at `https://app.maindomain.com/login`, then creates
   Data Entry / Data Analyst / Data Manager users from the **Team** page and
   tables from the **Tables** page.
+- Every company user created with a temp password (the admin included) is
+  forced to set a real password on first login before reaching any other page
+  (`mustChangePassword` flag, enforced server-side in the dashboard layout).
 
 ## Roles & permissions
 

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import CreateCompanyForm from './create-company-form';
+import CompanyStatusToggle from './company-status-toggle';
 
 export default async function FounderCompaniesPage() {
   const companies = await prisma.company.findMany({
@@ -25,6 +26,7 @@ export default async function FounderCompaniesPage() {
               <th>Users</th>
               <th>Tables</th>
               <th>Created</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -38,11 +40,14 @@ export default async function FounderCompaniesPage() {
                 <td>{c._count.users}</td>
                 <td>{c._count.tables}</td>
                 <td className="muted">{c.createdAt.toISOString().slice(0, 10)}</td>
+                <td>
+                  <CompanyStatusToggle id={c.id} status={c.status} />
+                </td>
               </tr>
             ))}
             {companies.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   No companies yet.
                 </td>
               </tr>

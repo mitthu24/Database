@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getCompanySession, can } from '@/lib/auth';
 import TableActions from './table-actions';
+import DataTable from './data-table';
 
 export default async function TableDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -38,39 +39,14 @@ export default async function TableDetailPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="card">
-        <h2>Data (showing latest {rows.length})</h2>
-        <div style={{ overflowX: 'auto' }}>
-          <table>
-            <thead>
-              <tr>
-                {columns.map((c) => (
-                  <th key={c.name}>{c.name}</th>
-                ))}
-                <th>Added</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const data = r.data as Record<string, unknown>;
-                return (
-                  <tr key={r.id}>
-                    {columns.map((c) => (
-                      <td key={c.name}>{String(data[c.name] ?? '')}</td>
-                    ))}
-                    <td className="muted">{r.createdAt.toISOString().slice(0, 16).replace('T', ' ')}</td>
-                  </tr>
-                );
-              })}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={columns.length + 1} className="muted">
-                    No data yet. Upload a CSV above.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          rows={rows.map((r) => ({
+            id: r.id,
+            createdAt: r.createdAt.toISOString(),
+            data: r.data as Record<string, unknown>,
+          }))}
+        />
       </div>
 
       <div className="card">
