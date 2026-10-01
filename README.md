@@ -43,19 +43,30 @@ There are no real subdomains on `localhost`, so in dev either:
 ### 2. Create the Vercel project (app)
 1. Push this repo to GitHub (already done if you're reading this from the repo).
 2. In Vercel → **Add New Project** → import the repo.
-3. Framework preset: Next.js (auto-detected). Build command / output: defaults are fine
-   (`npm run build`, which runs `prisma generate` first).
+3. Framework preset: Next.js (auto-detected). Build command / output: defaults are fine —
+   `npm run build` runs `prisma generate && prisma db push --accept-data-loss && next build`,
+   so **the schema is pushed to Postgres automatically on every deploy** from
+   Vercel's own build network. (Fine for Phase 1's single-environment setup;
+   switch to tracked `prisma migrate deploy` once you need migration history
+   or multiple environments.)
 4. Add environment variables (Project → Settings → Environment Variables):
-   - `DATABASE_URL` — from Railway step 1
+   - `DATABASE_URL` — from Railway step 1 (needed at **build time** too, since the
+     build step pushes the schema — don't restrict it to "Production" only if
+     you also build Preview deployments)
    - `AUTH_SECRET` — generate with `openssl rand -base64 32`
    - `ROOT_DOMAIN` — your apex domain, e.g. `maindomain.com`
-5. Deploy once to get a `*.vercel.app` URL and confirm the build is green.
-6. Run the schema push + seed against the Railway database (one-time, from your
-   machine or Vercel's CLI):
+   - `SETUP_SECRET` — any random string; used once to seed the founder (step 5)
+5. Deploy to get a `*.vercel.app` URL and confirm the build is green (the schema
+   push happened as part of that build).
+6. Seed the first founder account by POSTing to the one-time setup route (this
+   runs on Vercel's network, so it can reach Postgres):
    ```bash
-   DATABASE_URL="<railway-url>" npx prisma db push
-   DATABASE_URL="<railway-url>" FOUNDER_EMAIL=you@company.com FOUNDER_PASSWORD='...' npm run db:seed
+   curl -X POST https://<your-deployment>.vercel.app/api/internal/setup-founder \
+     -H 'Content-Type: application/json' \
+     -d '{"secret":"<SETUP_SECRET>","email":"you@company.com","password":"...","name":"Founder"}'
    ```
+   It refuses to run a second time once a founder exists, so it's safe to leave
+   deployed.
 
 ### 3. Attach your domains to the one Vercel project
 In Vercel → Project → Settings → Domains, add:
