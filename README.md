@@ -27,9 +27,11 @@ npm run db:seed        # creates the first founder account from FOUNDER_EMAIL/FO
 npm run dev
 ```
 
-There are no real subdomains on `localhost`, so in dev either:
-- visit `http://localhost:3000/founder/login` or `/company/login` directly, or
-- append `?panel=founder` / `?panel=company` to any URL to force a panel.
+There are no real subdomains on `localhost` (or on a raw `*.vercel.app` URL
+before you attach a custom domain), so just visit `/founder/login` or
+`/company/login` directly — any path starting with `/founder` or `/company` is
+routed there regardless of host, so the app's own internal links work fine
+without subdomains too.
 
 ## Deployment: Railway (Postgres) + Vercel (app)
 

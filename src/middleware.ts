@@ -5,43 +5,35 @@ import { NextRequest, NextResponse } from 'next/server';
 //   app.<root>    -> /company/*   (company admin + staff panel)
 //   <root> (apex) -> /marketing/* (placeholder landing page, built in Phase 3)
 //
-// In local dev (no real subdomains), hitting /founder/* or /company/* directly
-// works too, and ?panel=founder|company on any path forces a panel for testing.
+// A path that already starts with /founder or /company is routed there
+// regardless of host: this makes internal links (e.g. FounderNav -> "/founder")
+// and anyone navigating to /founder/login or /company/login directly work even
+// without real subdomains set up yet (e.g. testing on the raw *.vercel.app
+// URL before a custom domain is attached). Only a path with neither prefix
+// (including bare "/") falls back to the host-based rule, which is marketing
+// unless the host is an admin./app. subdomain.
 export function middleware(req: NextRequest) {
   const url = req.nextUrl;
   const host = req.headers.get('host') || '';
   const hostname = host.split(':')[0];
 
-  const panelOverride = url.searchParams.get('panel');
-  let target: 'founder' | 'company' | 'marketing' | null = null;
-
-  if (panelOverride === 'founder' || panelOverride === 'company') {
-    target = panelOverride;
-  } else if (hostname.startsWith('admin.')) {
-    target = 'founder';
-  } else if (hostname.startsWith('app.')) {
-    target = 'company';
-  } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Local dev without subdomains: let explicit /founder or /company paths through
-    // untouched, otherwise fall back to the marketing placeholder.
-    if (url.pathname.startsWith('/founder') || url.pathname.startsWith('/company')) {
-      return NextResponse.next();
-    }
-    target = 'marketing';
-  } else {
-    target = 'marketing';
-  }
-
-  if (
-    (target === 'founder' && url.pathname.startsWith('/founder')) ||
-    (target === 'company' && url.pathname.startsWith('/company')) ||
-    (target === 'marketing' && url.pathname.startsWith('/marketing'))
-  ) {
+  if (url.pathname.startsWith('/api')) {
+    // API routes are shared; don't rewrite them.
     return NextResponse.next();
   }
 
-  if (url.pathname.startsWith('/api')) {
-    // API routes are shared; don't rewrite them.
+  if (url.pathname.startsWith('/founder') || url.pathname.startsWith('/company')) {
+    return NextResponse.next();
+  }
+
+  let target: 'founder' | 'company' | 'marketing' = 'marketing';
+  if (hostname.startsWith('admin.')) {
+    target = 'founder';
+  } else if (hostname.startsWith('app.')) {
+    target = 'company';
+  }
+
+  if (url.pathname.startsWith('/marketing')) {
     return NextResponse.next();
   }
 
